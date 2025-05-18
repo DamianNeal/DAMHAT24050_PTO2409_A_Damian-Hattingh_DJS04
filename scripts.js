@@ -1,12 +1,29 @@
-import { books, authors, genres, BOOKS_PER_PAGE } from './data.js';
-import './BookPreviewComponent.js'; // ✅ Import Web Component
+// ========================
+// IMPORTS & STATE
+// ========================
 
+// Import data objects and constants from external module
+import { books, authors, genres, BOOKS_PER_PAGE } from './data.js';
+
+// Import the custom web component for book previews
+import './BookPreviewComponent.js'; // Web Component registered
+
+// Application state for pagination and filtered book matches
 const state = {
-  page: 1,
-  matches: books,
+  page: 1,             // Tracks current page for pagination
+  matches: books,      // Books to render based on filters
 };
 
-// ✅ Use <book-preview> element
+// ========================
+// COMPONENT FACTORIES
+// ========================
+
+/**
+ * Creates a <book-preview> Web Component instance.
+ * Populates it with book data as attributes.
+ * @param {Object} book
+ * @returns {HTMLElement}
+ */
 function createBookPreview(book) {
   const element = document.createElement('book-preview');
   element.setAttribute('data-id', book.id);
@@ -16,6 +33,11 @@ function createBookPreview(book) {
   return element;
 }
 
+/**
+ * Renders a list of book previews into a container.
+ * @param {Array} bookList
+ * @param {HTMLElement} container
+ */
 function renderBookList(bookList, container) {
   const fragment = document.createDocumentFragment();
   for (const book of bookList) {
@@ -24,13 +46,22 @@ function renderBookList(bookList, container) {
   container.appendChild(fragment);
 }
 
+/**
+ * Populates a <select> dropdown with options from an object.
+ * @param {Object} options - key-value pairs
+ * @param {HTMLElement} selectElement
+ * @param {string} defaultText - Placeholder option label
+ */
 function populateSelect(options, selectElement, defaultText) {
   const fragment = document.createDocumentFragment();
+
+  // Default option (e.g., "All Genres" / "All Authors")
   const defaultOption = document.createElement('option');
   defaultOption.value = 'any';
   defaultOption.innerText = defaultText;
   fragment.appendChild(defaultOption);
 
+  // Add one <option> per item
   for (const [id, name] of Object.entries(options)) {
     const option = document.createElement('option');
     option.value = id;
@@ -41,29 +72,46 @@ function populateSelect(options, selectElement, defaultText) {
   selectElement.appendChild(fragment);
 }
 
-// ========== INITIAL LOAD ==========
+// ========================
+// INITIAL LOAD
+// ========================
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Render first page of books
   renderBookList(state.matches.slice(0, BOOKS_PER_PAGE), document.querySelector('[data-list-items]'));
+
+  // Populate genre and author dropdowns
   populateSelect(genres, document.querySelector('[data-search-genres]'), 'All Genres');
   populateSelect(authors, document.querySelector('[data-search-authors]'), 'All Authors');
 
+  // Set initial theme based on system preference
   const isDarkTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
   document.querySelector('[data-settings-theme]').value = isDarkTheme ? 'night' : 'day';
   document.documentElement.style.setProperty('--color-dark', isDarkTheme ? '255, 255, 255' : '10, 10, 20');
   document.documentElement.style.setProperty('--color-light', isDarkTheme ? '10, 10, 20' : '255, 255, 255');
 
+  // Setup initial state of the Show More button
   updateShowMore();
 });
 
-// ========== EVENT HANDLERS ==========
+// ========================
+// EVENT HANDLERS
+// ========================
 
-// ✅ Fix: use custom event from Web Component
+/**
+ * Handles preview-click events from the <book-preview> component.
+ * Opens modal with detailed book view.
+ */
 document.querySelector('[data-list-items]').addEventListener('preview-click', (event) => {
   const previewId = event.detail.id;
   const book = books.find(book => book.id === previewId);
   if (book) displayActiveBook(book);
 });
 
+/**
+ * Handles pagination when 'Show More' is clicked.
+ * Loads the next page of books into the list.
+ */
 document.querySelector('[data-list-button]').addEventListener('click', () => {
   const nextBooks = state.matches.slice(state.page * BOOKS_PER_PAGE, (state.page + 1) * BOOKS_PER_PAGE);
   renderBookList(nextBooks, document.querySelector('[data-list-items]'));
@@ -71,6 +119,9 @@ document.querySelector('[data-list-button]').addEventListener('click', () => {
   updateShowMore();
 });
 
+/**
+ * Filters books based on search form input and re-renders the list.
+ */
 document.querySelector('[data-search-form]').addEventListener('submit', (event) => {
   event.preventDefault();
   const formData = new FormData(event.target);
@@ -83,6 +134,7 @@ document.querySelector('[data-search-form]').addEventListener('submit', (event) 
     return titleMatch && authorMatch && genreMatch;
   });
 
+  // Reset state and UI with filtered results
   state.page = 1;
   state.matches = filtered;
   document.querySelector('[data-list-items]').innerHTML = '';
@@ -93,6 +145,9 @@ document.querySelector('[data-search-form]').addEventListener('submit', (event) 
   document.querySelector('[data-search-overlay]').open = false;
 });
 
+/**
+ * Applies theme changes from settings form.
+ */
 document.querySelector('[data-settings-form]').addEventListener('submit', (event) => {
   event.preventDefault();
   const { theme } = Object.fromEntries(new FormData(event.target));
@@ -102,6 +157,7 @@ document.querySelector('[data-settings-form]').addEventListener('submit', (event
   document.querySelector('[data-settings-overlay]').open = false;
 });
 
+// Cancel buttons (close modals)
 document.querySelector('[data-search-cancel]').addEventListener('click', () => {
   document.querySelector('[data-search-overlay]').open = false;
 });
@@ -110,6 +166,7 @@ document.querySelector('[data-settings-cancel]').addEventListener('click', () =>
   document.querySelector('[data-settings-overlay]').open = false;
 });
 
+// Header buttons to open overlays
 document.querySelector('[data-header-search]').addEventListener('click', () => {
   document.querySelector('[data-search-overlay]').open = true;
   document.querySelector('[data-search-title]').focus();
@@ -119,11 +176,18 @@ document.querySelector('[data-header-settings]').addEventListener('click', () =>
   document.querySelector('[data-settings-overlay]').open = true;
 });
 
+// Close preview modal
 document.querySelector('[data-list-close]').addEventListener('click', () => {
   document.querySelector('[data-list-active]').open = false;
 });
 
-// ========== UTILITY ==========
+// ========================
+// UTILITY FUNCTIONS
+// ========================
+
+/**
+ * Updates the 'Show More' button visibility and label.
+ */
 function updateShowMore() {
   const remaining = state.matches.length - (state.page * BOOKS_PER_PAGE);
   const button = document.querySelector('[data-list-button]');
@@ -134,6 +198,10 @@ function updateShowMore() {
   `;
 }
 
+/**
+ * Populates the modal with full book details and opens it.
+ * @param {Object} book
+ */
 function displayActiveBook(book) {
   document.querySelector('[data-list-active]').open = true;
   document.querySelector('[data-list-blur]').src = book.image;
