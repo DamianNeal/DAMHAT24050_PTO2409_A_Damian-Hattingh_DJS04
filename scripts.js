@@ -1,43 +1,21 @@
-// Refactored Book Connect JavaScript Application
-// Follows abstraction, modularization, and style guidelines
-
 import { books, authors, genres, BOOKS_PER_PAGE } from './data.js';
-
-// =========================
-// DATA MODELS AND HELPERS
-// =========================
+import './BookPreviewComponent.js'; // ✅ Import Web Component
 
 const state = {
   page: 1,
   matches: books,
 };
 
-/**
- * Creates a book preview button element.
- * @param {Object} book - Book object with id, image, title, author.
- * @returns {HTMLElement}
- */
+// ✅ Use <book-preview> element
 function createBookPreview(book) {
-  const element = document.createElement('button');
-  element.classList = 'preview';
-  element.setAttribute('data-preview', book.id);
-
-  element.innerHTML = `
-    <img class="preview__image" src="${book.image}" />
-    <div class="preview__info">
-      <h3 class="preview__title">${book.title}</h3>
-      <div class="preview__author">${authors[book.author]}</div>
-    </div>
-  `;
-
+  const element = document.createElement('book-preview');
+  element.setAttribute('data-id', book.id);
+  element.setAttribute('data-title', book.title);
+  element.setAttribute('data-author', authors[book.author]);
+  element.setAttribute('data-image', book.image);
   return element;
 }
 
-/**
- * Renders a list of books to the DOM.
- * @param {Array} bookList
- * @param {HTMLElement} container
- */
 function renderBookList(bookList, container) {
   const fragment = document.createDocumentFragment();
   for (const book of bookList) {
@@ -46,12 +24,6 @@ function renderBookList(bookList, container) {
   container.appendChild(fragment);
 }
 
-/**
- * Populates a select dropdown with options.
- * @param {Object} options - key-value pairs
- * @param {HTMLElement} selectElement
- * @param {string} defaultText
- */
 function populateSelect(options, selectElement, defaultText) {
   const fragment = document.createDocumentFragment();
   const defaultOption = document.createElement('option');
@@ -69,10 +41,7 @@ function populateSelect(options, selectElement, defaultText) {
   selectElement.appendChild(fragment);
 }
 
-// =========================
-// INITIAL RENDER
-// =========================
-
+// ========== INITIAL LOAD ==========
 document.addEventListener('DOMContentLoaded', () => {
   renderBookList(state.matches.slice(0, BOOKS_PER_PAGE), document.querySelector('[data-list-items]'));
   populateSelect(genres, document.querySelector('[data-search-genres]'), 'All Genres');
@@ -86,9 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
   updateShowMore();
 });
 
-// =========================
-// EVENT HANDLERS
-// =========================
+// ========== EVENT HANDLERS ==========
+
+// ✅ Fix: use custom event from Web Component
+document.querySelector('[data-list-items]').addEventListener('preview-click', (event) => {
+  const previewId = event.detail.id;
+  const book = books.find(book => book.id === previewId);
+  if (book) displayActiveBook(book);
+});
 
 document.querySelector('[data-list-button]').addEventListener('click', () => {
   const nextBooks = state.matches.slice(state.page * BOOKS_PER_PAGE, (state.page + 1) * BOOKS_PER_PAGE);
@@ -128,12 +102,6 @@ document.querySelector('[data-settings-form]').addEventListener('submit', (event
   document.querySelector('[data-settings-overlay]').open = false;
 });
 
-document.querySelector('[data-list-items]').addEventListener('click', (event) => {
-  const previewId = event.target.closest('[data-preview]')?.dataset?.preview;
-  const book = books.find(book => book.id === previewId);
-  if (book) displayActiveBook(book);
-});
-
 document.querySelector('[data-search-cancel]').addEventListener('click', () => {
   document.querySelector('[data-search-overlay]').open = false;
 });
@@ -155,12 +123,7 @@ document.querySelector('[data-list-close]').addEventListener('click', () => {
   document.querySelector('[data-list-active]').open = false;
 });
 
-// =========================
-// UTILITY FUNCTIONS
-// =========================
-/**
- * Updates the visibility, count, and enablement of the 'Show More' button
- */
+// ========== UTILITY ==========
 function updateShowMore() {
   const remaining = state.matches.length - (state.page * BOOKS_PER_PAGE);
   const button = document.querySelector('[data-list-button]');
@@ -170,11 +133,6 @@ function updateShowMore() {
     <span class="list__remaining"> (${remaining > 0 ? remaining : 0})</span>
   `;
 }
-
-/**
- * Opens the preview modal with book detail content populated
- * @param {Object} book - The selected book object
- */
 
 function displayActiveBook(book) {
   document.querySelector('[data-list-active]').open = true;
